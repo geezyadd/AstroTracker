@@ -1,0 +1,14 @@
+{
+    "name": "AstroTracker.PlateSolving",
+    "rootNamespace": "AstroTracker.PlateSolving",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

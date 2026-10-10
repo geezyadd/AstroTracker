@@ -110,3 +110,8 @@ InitTestScene*.unity*
 
 # Star catalogue: downloaded sources
 /Tools/StarCatalog/raw/
+
+# .NET build output of the tools
+/Tools/**/bin/
+/Tools/**/obj/
+!/Tools/**/*.csproj

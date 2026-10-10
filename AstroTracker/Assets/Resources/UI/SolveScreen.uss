@@ -1,0 +1,120 @@
+.screen {
+    flex-grow: 1;
+    background-color: rgb(16, 18, 24);
+}
+
+.content {
+    width: 100%;
+    max-width: 760px;
+    align-self: center;
+    padding: 24px;
+}
+
+.title {
+    font-size: 34px;
+    -unity-font-style: bold;
+    color: rgb(255, 255, 255);
+    margin-bottom: 20px;
+}
+
+.row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.button {
+    height: 56px;
+    margin: 0;
+    padding: 0 24px;
+    font-size: 22px;
+    color: rgb(255, 255, 255);
+    background-color: rgb(52, 58, 72);
+    border-width: 0;
+    border-radius: 8px;
+}
+
+.button:hover {
+    background-color: rgb(64, 71, 88);
+}
+
+.button:active {
+    background-color: rgb(40, 45, 56);
+}
+
+.button:disabled {
+    opacity: 0.45;
+}
+
+.primary {
+    margin-top: 12px;
+    background-color: rgb(40, 110, 220);
+}
+
+.primary:hover {
+    background-color: rgb(58, 126, 234);
+}
+
+.primary:active {
+    background-color: rgb(30, 90, 190);
+}
+
+.file {
+    flex-shrink: 1;
+    margin-left: 16px;
+    font-size: 18px;
+    color: rgb(170, 176, 190);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.field {
+    margin: 0 0 10px 0;
+    font-size: 20px;
+    color: rgb(255, 255, 255);
+}
+
+.field > .unity-base-field__label {
+    min-width: 300px;
+    align-self: center;
+    color: rgb(200, 205, 215);
+}
+
+.field .unity-base-text-field__input {
+    height: 48px;
+    padding: 0 12px;
+    background-color: rgb(28, 31, 40);
+    border-color: rgb(70, 76, 92);
+    border-radius: 6px;
+}
+
+.matches {
+    margin-bottom: 6px;
+}
+
+.match {
+    height: 44px;
+    margin: 0 0 4px 0;
+    padding: 0 12px;
+    font-size: 18px;
+    -unity-text-align: middle-left;
+    color: rgb(230, 233, 240);
+    background-color: rgb(28, 31, 40);
+    border-width: 0;
+    border-radius: 6px;
+}
+
+.match:hover {
+    background-color: rgb(40, 45, 58);
+}
+
+.match:active {
+    background-color: rgb(52, 58, 72);
+}
+
+.result {
+    margin-top: 20px;
+    font-size: 20px;
+    color: rgb(230, 233, 240);
+    white-space: normal;
+}

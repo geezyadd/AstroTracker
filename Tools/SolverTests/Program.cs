@@ -19,7 +19,7 @@ static class Program
         _random = new Random(args.Length > 1 ? int.Parse(args[1]) : 1);
 
         string path = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
-            "AstroTracker", "Assets", "StarCatalog", "tycho2.bytes");
+            "AstroTracker", "Assets", "Resources", "StarCatalog", "tycho2.bytes");
         var catalog = new StarCatalog(File.ReadAllBytes(path));
         Console.WriteLine($"catalogue: {catalog.StarCount} stars, epoch J{catalog.Epoch:F2}");
 

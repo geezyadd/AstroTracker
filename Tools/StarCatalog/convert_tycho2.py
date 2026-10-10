@@ -2,7 +2,7 @@
 """Convert the Tycho-2 catalogue (CDS I/259) into a compact binary star file.
 
 Input  (raw/):  tyc2.dat.00.gz .. tyc2.dat.19.gz, suppl_1.dat.gz
-Output:         AstroTracker/Assets/StarCatalog/tycho2.bytes (a Unity TextAsset)
+Output:         AstroTracker/Assets/Resources/StarCatalog/tycho2.bytes (a Unity TextAsset)
 
 Positions are moved to the target epoch with the catalogue proper motions and
 sorted into 1-degree declination bands (south to north), by RA inside a band.
@@ -39,7 +39,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_OUT = os.path.normpath(os.path.join(
-    HERE, "..", "..", "AstroTracker", "Assets", "StarCatalog", "tycho2.bytes"))
+    HERE, "..", "..", "AstroTracker", "Assets", "Resources", "StarCatalog", "tycho2.bytes"))
 MAGIC = b"ATSC"
 VERSION = 1
 BAND_COUNT = 180

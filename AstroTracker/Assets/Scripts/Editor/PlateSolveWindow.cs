@@ -12,7 +12,7 @@ namespace AstroTracker.EditorTools
     /// <summary>Solves a camera frame from disk, for checking the plate solver without the telescope.</summary>
     public sealed class PlateSolveWindow : EditorWindow
     {
-        const string CatalogPath = "Assets/StarCatalog/tycho2.bytes";
+        const string CatalogPath = "Assets/Resources/StarCatalog/tycho2.bytes";
 
         string _imagePath = "";
         double _hintRaHours = 9.93;

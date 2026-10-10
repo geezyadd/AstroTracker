@@ -46,11 +46,12 @@ namespace AstroTracker
             return parts > 0;
         }
 
-        /// <summary>Right ascension given in degrees, written as hours: "10h 24m 22.2s".</summary>
+        /// <summary>Right ascension given in degrees, written as hours in the interface language: "10h 24m 22.2s".</summary>
         public static string FormatRa(double degrees)
         {
             Split(((degrees % 360 + 360) % 360) / 15, 10, out int hours, out int minutes, out double seconds);
-            return string.Format(CultureInfo.InvariantCulture, "{0:00}h {1:00}m {2:00.0}s", hours, minutes, seconds);
+            return string.Format(CultureInfo.InvariantCulture, "{0:00}{3} {1:00}{4} {2:00.0}{5}", hours, minutes, seconds,
+                Localization.Get("hours"), Localization.Get("minutes"), Localization.Get("seconds"));
         }
 
         /// <summary>Declination in degrees: "+64° 08′ 30″".</summary>

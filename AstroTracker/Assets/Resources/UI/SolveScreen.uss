@@ -10,11 +10,46 @@
     padding: 24px;
 }
 
+.header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
 .title {
     font-size: 34px;
     -unity-font-style: bold;
     color: rgb(255, 255, 255);
-    margin-bottom: 20px;
+}
+
+.languages {
+    flex-direction: row;
+}
+
+.language {
+    height: 40px;
+    min-width: 64px;
+    margin: 0 0 0 6px;
+    padding: 0 10px;
+    font-size: 16px;
+    color: rgb(170, 176, 190);
+    background-color: rgb(28, 31, 40);
+    border-width: 0;
+    border-radius: 6px;
+}
+
+.language:hover {
+    background-color: rgb(40, 45, 58);
+}
+
+.language-active {
+    color: rgb(255, 255, 255);
+    background-color: rgb(40, 110, 220);
+}
+
+.language-active:hover {
+    background-color: rgb(40, 110, 220);
 }
 
 .row {

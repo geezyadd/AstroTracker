@@ -23,28 +23,21 @@ namespace AstroTracker
     {
         const int Binning = 2;
         const int MaxMatches = 6;
-
-        static readonly Dictionary<string, string> TypeNames = new Dictionary<string, string>
-        {
-            { "G", "galaxy" }, { "GPair", "galaxy pair" }, { "GTrpl", "galaxy triplet" },
-            { "GGroup", "galaxy group" }, { "OCl", "open cluster" }, { "GCl", "globular cluster" },
-            { "Cl+N", "cluster with nebula" }, { "*Ass", "stellar association" },
-            { "PN", "planetary nebula" }, { "HII", "H II region" }, { "Neb", "nebula" },
-            { "EmN", "emission nebula" }, { "RfN", "reflection nebula" },
-            { "DrkN", "dark nebula" }, { "SNR", "supernova remnant" }, { "Nova", "nova" },
-            { "*", "star" }, { "**", "double star" },
-        };
+        const string ActiveLanguageClass = "language-active";
 
         Button _pickButton, _solveButton;
+        Button[] _languageButtons;
         Label _fileLabel, _resultLabel;
         TextField _searchField, _raField, _decField, _radiusField, _scaleField;
         VisualElement _matches;
         ObjectCatalog _objects;
 
-        string _imagePath;
+        string _imagePath, _imageName;
         bool _busy;
         StarCatalog _catalog;
         SolverIndex _index;
+        /// <summary>Produces the text under the Solve button, so it can be rewritten in another language.</summary>
+        Func<string> _result;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void CreateOnStartup()
@@ -90,6 +83,17 @@ namespace AstroTracker
             _radiusField = root.Q<TextField>("radius");
             _scaleField = root.Q<TextField>("scale");
 
+            // In the order of the Language enum.
+            _languageButtons = new[]
+            {
+                root.Q<Button>("language-en"), root.Q<Button>("language-ru"), root.Q<Button>("language-uk"),
+            };
+            for (int i = 0; i < _languageButtons.Length; i++)
+            {
+                var language = (Language)i;
+                _languageButtons[i].clickable = new Clickable(() => Localization.Current = language);
+            }
+
             foreach (TextField field in new[] { _raField, _decField, _radiusField, _scaleField })
                 field.keyboardType = TouchScreenKeyboardType.NumbersAndPunctuation;
 
@@ -97,20 +101,55 @@ namespace AstroTracker
             _searchField.RegisterValueChangedCallback(OnSearchChanged);
             _pickButton.clicked += PickImage;
             _solveButton.clicked += Solve;
+            Localization.Changed += ApplyLanguage;
+            ApplyLanguage();
             UpdateButtons();
         }
 
         void OnDisable()
         {
+            Localization.Changed -= ApplyLanguage;
             _searchField.UnregisterValueChangedCallback(OnSearchChanged);
             _pickButton.clicked -= PickImage;
             _solveButton.clicked -= Solve;
         }
 
+        /// <summary>Rewrites every text on the screen in the current language.</summary>
+        void ApplyLanguage()
+        {
+            _pickButton.text = Localization.Get("pick");
+            _solveButton.text = Localization.Get("solve");
+            _searchField.label = Localization.Get("object");
+            _raField.label = Localization.Get("targetRa");
+            _decField.label = Localization.Get("targetDec");
+            _radiusField.label = Localization.Get("radius");
+            _scaleField.label = Localization.Get("scale");
+            _fileLabel.text = _imageName ?? Localization.Get("noPhoto");
+            _resultLabel.text = _result?.Invoke() ?? "";
+
+            for (int i = 0; i < _languageButtons.Length; i++)
+                _languageButtons[i].EnableInClassList(ActiveLanguageClass, i == (int)Localization.Current);
+            if (_matches.childCount > 0)
+                ShowMatches(_searchField.value);
+        }
+
+        void ShowResult(Func<string> result)
+        {
+            _result = result;
+            _resultLabel.text = result?.Invoke() ?? "";
+        }
+
         void OnSearchChanged(ChangeEvent<string> change)
         {
+            // The field's own label reports text changes the same way; only typed text is a query.
+            if (change.target == _searchField)
+                ShowMatches(change.newValue);
+        }
+
+        void ShowMatches(string query)
+        {
             _matches.Clear();
-            foreach (SkyObject item in _objects.Search(change.newValue, MaxMatches))
+            foreach (SkyObject item in _objects.Search(query, MaxMatches))
             {
                 SkyObject chosen = item;
                 var button = new Button(() => ChooseObject(chosen)) { text = DescribeObject(item) };
@@ -131,10 +170,14 @@ namespace AstroTracker
         static string DescribeObject(SkyObject item)
         {
             var text = new StringBuilder(item.Title);
-            if (TypeNames.TryGetValue(item.Type, out string type))
+            string type = Localization.ObjectType(item.Type);
+            if (type != null)
                 text.Append(" · ").Append(type);
             if (!float.IsNaN(item.Magnitude))
-                text.Append(" · mag ").Append(item.Magnitude.ToString("F1", CultureInfo.InvariantCulture));
+            {
+                text.Append(" · ").Append(Localization.Get("magnitude"))
+                    .Append(item.Magnitude.ToString("F1", CultureInfo.InvariantCulture));
+            }
             return text.ToString();
         }
 
@@ -144,11 +187,12 @@ namespace AstroTracker
                 (path, displayName) =>
                 {
                     _imagePath = path;
+                    _imageName = displayName;
                     _fileLabel.text = displayName;
-                    _resultLabel.text = "";
+                    ShowResult(null);
                     UpdateButtons();
                 },
-                message => _resultLabel.text = "Could not open the photo: " + message);
+                message => ShowResult(() => Localization.Get("photoError") + message));
         }
 
         void UpdateButtons()
@@ -161,28 +205,28 @@ namespace AstroTracker
         {
             if (!SkyCoordinates.TryParse(_raField.value, out double raHours) || raHours < 0 || raHours >= 24)
             {
-                _resultLabel.text = "Target RA: hours from 0 to 24, for example \"9 55 52\" or \"9.93\".";
+                ShowResult(() => Localization.Get("raError"));
                 return;
             }
             if (!SkyCoordinates.TryParse(_decField.value, out double decDeg) || Math.Abs(decDeg) > 90)
             {
-                _resultLabel.text = "Target Dec: degrees from −90 to +90, for example \"+69 40 47\".";
+                ShowResult(() => Localization.Get("decError"));
                 return;
             }
             if (!SkyCoordinates.TryParse(_radiusField.value, out double radiusDeg) || radiusDeg <= 0 || radiusDeg > 45)
             {
-                _resultLabel.text = "Search radius: a number of degrees between 0 and 45.";
+                ShowResult(() => Localization.Get("radiusError"));
                 return;
             }
             if (!SkyCoordinates.TryParse(_scaleField.value, out double pixelScale) || pixelScale <= 0)
             {
-                _resultLabel.text = "Pixel scale: a positive number of arcseconds per pixel.";
+                ShowResult(() => Localization.Get("scaleError"));
                 return;
             }
 
             _busy = true;
             UpdateButtons();
-            _resultLabel.text = "Solving…";
+            ShowResult(() => Localization.Get("solving"));
             try
             {
                 var clock = Stopwatch.StartNew();
@@ -211,13 +255,15 @@ namespace AstroTracker
                 if (this == null)
                     return;
                 _index = index;
-                _resultLabel.text = Describe(solution, target, stars.Count, clock.Elapsed.TotalSeconds);
+                int detected = stars.Count;
+                double seconds = clock.Elapsed.TotalSeconds;
+                ShowResult(() => Describe(solution, target, detected, seconds));
             }
             catch (Exception e)
             {
                 UnityEngine.Debug.LogException(e);
                 if (this != null)
-                    _resultLabel.text = "Error: " + e.Message;
+                    ShowResult(() => Localization.Get("error") + e.Message);
             }
             finally
             {
@@ -233,9 +279,9 @@ namespace AstroTracker
             var text = new StringBuilder();
             if (solution == null)
             {
-                text.AppendLine("No solution found.");
-                text.AppendLine(string.Format(plain, "Stars in the frame: {0}. Time: {1:F1} s.", detected, seconds));
-                text.Append("Check the target coordinates, the search radius and the pixel scale.");
+                text.AppendLine(Localization.Get("noSolution"));
+                text.AppendLine(string.Format(plain, Localization.Get("noSolutionStats"), detected, seconds));
+                text.Append(Localization.Get("noSolutionHint"));
                 return text.ToString();
             }
 
@@ -245,17 +291,17 @@ namespace AstroTracker
             double deltaDec = targetDec - solution.DecDeg;
             double offset = center.AngleTo(target) * Angle.RadToDeg;
 
-            text.AppendLine("Frame centre (J2000)");
+            text.AppendLine(Localization.Get("frameCentre"));
             text.AppendLine($"RA {SkyCoordinates.FormatRa(solution.RaDeg)}    Dec {SkyCoordinates.FormatDec(solution.DecDeg)}");
             text.AppendLine();
-            text.AppendLine("Distance to target: " + FormatOffset(offset));
-            text.AppendLine(string.Format(plain, "RA {0:+0.000;−0.000}°, Dec {1:+0.000;−0.000}°", deltaRa, deltaDec));
+            text.AppendLine(Localization.Get("toTarget") + FormatOffset(offset));
+            text.AppendLine(string.Format(plain, Localization.Get("toTargetAxes"), deltaRa, deltaDec));
             text.AppendLine();
-            text.AppendLine(string.Format(plain, "Scale {0:F3}″/pixel, frame up is {1:F1}° east of north{2}",
-                solution.PixelScaleArcsec, solution.RotationDeg, solution.Mirrored ? ", mirrored" : ""));
-            text.AppendLine(string.Format(plain, "Stars in the frame {0}, matched to the catalogue {1}, rms {2:F2}″",
-                detected, solution.MatchedStars, solution.RmsArcsec));
-            text.Append(string.Format(plain, "Time: {0:F1} s", seconds));
+            text.AppendLine(string.Format(plain, Localization.Get("scaleLine"), solution.PixelScaleArcsec,
+                solution.RotationDeg, solution.Mirrored ? Localization.Get("mirrored") : ""));
+            text.AppendLine(string.Format(plain, Localization.Get("starsLine"), detected, solution.MatchedStars,
+                solution.RmsArcsec));
+            text.Append(string.Format(plain, Localization.Get("time"), seconds));
             return text.ToString();
         }
 

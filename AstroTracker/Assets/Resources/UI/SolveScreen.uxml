@@ -2,7 +2,14 @@
     <Style src="SolveScreen.uss" />
     <ui:ScrollView class="screen" vertical-scroller-visibility="Hidden" horizontal-scroller-visibility="Hidden">
         <ui:VisualElement class="content">
-            <ui:Label text="AstroTracker" class="title" />
+            <ui:VisualElement class="header">
+                <ui:Label text="AstroTracker" class="title" />
+                <ui:VisualElement class="languages">
+                    <ui:Button name="language-en" text="EN" class="language" />
+                    <ui:Button name="language-ru" text="РУС" class="language" />
+                    <ui:Button name="language-uk" text="УКР" class="language" />
+                </ui:VisualElement>
+            </ui:VisualElement>
             <ui:VisualElement class="row">
                 <ui:Button name="pick" text="Choose photo" class="button" />
                 <ui:Label name="file" text="No photo selected" class="file" />

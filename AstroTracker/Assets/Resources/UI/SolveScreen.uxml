@@ -22,6 +22,15 @@
             <ui:TextField name="scale" label="Pixel scale, ″/pixel" value="1.37" class="field" />
             <ui:Button name="solve" text="Solve" class="button primary" />
             <ui:Label name="result" class="result" />
+            <ui:Label name="mount-title" class="section" />
+            <ui:TextField name="mount-address" value="127.0.0.1" class="field" />
+            <ui:VisualElement class="row">
+                <ui:Button name="mount-check" class="button mount-button" />
+                <ui:Button name="mount-goto" class="button mount-button" />
+                <ui:Button name="mount-sync" class="button mount-button" />
+                <ui:Button name="mount-stop" class="button mount-button stop" />
+            </ui:VisualElement>
+            <ui:Label name="mount-status" class="result mount-status" />
         </ui:VisualElement>
     </ui:ScrollView>
 </ui:UXML>

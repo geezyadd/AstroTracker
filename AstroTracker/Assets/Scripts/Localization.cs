@@ -160,6 +160,95 @@ namespace AstroTracker
             { "minutes", new[] { "m", "м", "хв" } },
             { "seconds", new[] { "s", "с", "с" } },
 
+            { "mountTitle", new[] { "Mount (SynScan app)", "Монтировка (приложение SynScan)", "Монтування (застосунок SynScan)" } },
+            { "mountAddress", new[] { "SynScan address", "Адрес SynScan", "Адреса SynScan" } },
+            { "mountCheck", new[] { "Check", "Проверить", "Перевірити" } },
+            { "mountGoTo", new[] { "GoTo", "GoTo", "GoTo" } },
+            { "mountSync", new[] { "Sync", "Синхр.", "Синхр." } },
+            { "mountStop", new[] { "Stop", "Стоп", "Стоп" } },
+            {
+                "mountNoAnswer", new[]
+                {
+                    "SynScan does not answer at {0}. Is the app running?",
+                    "SynScan не отвечает по адресу {0}. Приложение запущено?",
+                    "SynScan не відповідає за адресою {0}. Застосунок запущено?",
+                }
+            },
+            {
+                "mountRefused", new[]
+                {
+                    "SynScan refused the command: {0}",
+                    "SynScan отклонил команду: {0}",
+                    "SynScan відхилив команду: {0}",
+                }
+            },
+            {
+                "mountBadAddress", new[]
+                {
+                    "Address: an IP or host name, optionally with a port, for example 127.0.0.1 or 192.168.4.2:11881.",
+                    "Адрес: IP или имя устройства, можно с портом, например 127.0.0.1 или 192.168.4.2:11881.",
+                    "Адреса: IP або ім’я пристрою, можна з портом, наприклад 127.0.0.1 або 192.168.4.2:11881.",
+                }
+            },
+            {
+                "mountNotConnected", new[]
+                {
+                    "SynScan is running but is not connected to the mount.",
+                    "SynScan запущен, но не подключён к монтировке.",
+                    "SynScan запущено, але не під’єднано до монтування.",
+                }
+            },
+            {
+                "mountInfo", new[]
+                {
+                    "SynScan {0} answers. It believes the telescope points at RA {1}, Dec {2} (J2000).",
+                    "SynScan {0} отвечает. По его данным труба смотрит на RA {1}, Dec {2} (J2000).",
+                    "SynScan {0} відповідає. За його даними труба дивиться на RA {1}, Dec {2} (J2000).",
+                }
+            },
+            {
+                "mountNoTarget", new[]
+                {
+                    "Enter the target coordinates first.",
+                    "Сначала введите координаты цели.",
+                    "Спершу введіть координати цілі.",
+                }
+            },
+            { "mountSlewing", new[] { "Slewing to the target…", "Навожусь на цель…", "Наводжуся на ціль…" } },
+            {
+                "mountArrived", new[]
+                {
+                    "SynScan reports the slew is finished. Take a frame and solve it.",
+                    "SynScan сообщает, что наведение закончено. Снимите кадр и решите его.",
+                    "SynScan повідомляє, що наведення завершено. Зніміть кадр і розв’яжіть його.",
+                }
+            },
+            {
+                "mountNeedSolve", new[]
+                {
+                    "Solve a frame first: Sync sends the position found in it.",
+                    "Сначала решите кадр: синхронизация отправляет найденное в нём положение.",
+                    "Спершу розв’яжіть кадр: синхронізація надсилає знайдене в ньому положення.",
+                }
+            },
+            {
+                "mountNoSync", new[]
+                {
+                    "This SynScan does not accept Sync.",
+                    "Этот SynScan не принимает синхронизацию.",
+                    "Цей SynScan не приймає синхронізацію.",
+                }
+            },
+            {
+                "mountSynced", new[]
+                {
+                    "Synced: SynScan now knows where the telescope points. Press GoTo to centre the target.",
+                    "Синхронизировано: SynScan теперь знает, куда смотрит труба. Нажмите GoTo, чтобы довести на цель.",
+                    "Синхронізовано: SynScan тепер знає, куди дивиться труба. Натисніть GoTo, щоб довести на ціль.",
+                }
+            },
+            { "mountStopped", new[] { "Stopped.", "Остановлено.", "Зупинено." } },
+
             { "type.G", new[] { "galaxy", "галактика", "галактика" } },
             { "type.GPair", new[] { "galaxy pair", "пара галактик", "пара галактик" } },
             { "type.GTrpl", new[] { "galaxy triplet", "тройка галактик", "трійка галактик" } },

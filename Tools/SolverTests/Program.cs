@@ -26,7 +26,8 @@ static class Program
         bool lists = StarListTest(catalog, trials);
         bool noise = RandomStarsTest(catalog, Math.Max(10, trials / 4));
         bool frames = RenderedFrameTest(catalog, Math.Max(3, trials / 20));
-        return lists && noise && frames ? 0 : 1;
+        bool mount = MountTests.Run();
+        return lists && noise && frames && mount ? 0 : 1;
     }
 
     /// <summary>Solver alone: star positions taken from the catalogue and degraded.</summary>

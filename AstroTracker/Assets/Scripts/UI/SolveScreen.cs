@@ -31,6 +31,7 @@ namespace AstroTracker
         TextField _searchField, _raField, _decField, _radiusField, _scaleField;
         VisualElement _matches;
         ObjectCatalog _objects;
+        MountPanel _mount;
 
         string _imagePath, _imageName;
         bool _busy;
@@ -38,6 +39,8 @@ namespace AstroTracker
         SolverIndex _index;
         /// <summary>Produces the text under the Solve button, so it can be rewritten in another language.</summary>
         Func<string> _result;
+        /// <summary>Centre of the last solved frame (J2000) while the telescope has not been moved since.</summary>
+        Vec3? _solvedCenter;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void CreateOnStartup()
@@ -98,6 +101,7 @@ namespace AstroTracker
                 field.keyboardType = TouchScreenKeyboardType.NumbersAndPunctuation;
 
             _objects ??= new ObjectCatalog(Resources.Load<TextAsset>("ObjectCatalog/objects").text);
+            _mount = new MountPanel(root, CurrentTarget, () => _solvedCenter, () => _solvedCenter = null);
             _searchField.RegisterValueChangedCallback(OnSearchChanged);
             _pickButton.clicked += PickImage;
             _solveButton.clicked += Solve;
@@ -109,6 +113,7 @@ namespace AstroTracker
         void OnDisable()
         {
             Localization.Changed -= ApplyLanguage;
+            _mount.Dispose();
             _searchField.UnregisterValueChangedCallback(OnSearchChanged);
             _pickButton.clicked -= PickImage;
             _solveButton.clicked -= Solve;
@@ -126,11 +131,27 @@ namespace AstroTracker
             _scaleField.label = Localization.Get("scale");
             _fileLabel.text = _imageName ?? Localization.Get("noPhoto");
             _resultLabel.text = _result?.Invoke() ?? "";
+            _mount.ApplyLanguage();
 
             for (int i = 0; i < _languageButtons.Length; i++)
                 _languageButtons[i].EnableInClassList(ActiveLanguageClass, i == (int)Localization.Current);
             if (_matches.childCount > 0)
                 ShowMatches(_searchField.value);
+        }
+
+        /// <summary>The target in the coordinate fields as a J2000 direction, or null when they cannot be read.</summary>
+        Vec3? CurrentTarget()
+        {
+            if (!SkyCoordinates.TryParse(_raField.value, out double raHours) || raHours < 0 || raHours >= 24 ||
+                !SkyCoordinates.TryParse(_decField.value, out double decDeg) || Math.Abs(decDeg) > 90)
+                return null;
+            return Vec3.FromRaDecDegrees(raHours * 15, decDeg);
+        }
+
+        void SetSolvedCenter(Vec3? center)
+        {
+            _solvedCenter = center;
+            _mount.Refresh();
         }
 
         void ShowResult(Func<string> result)
@@ -189,6 +210,7 @@ namespace AstroTracker
                     _imagePath = path;
                     _imageName = displayName;
                     _fileLabel.text = displayName;
+                    SetSolvedCenter(null);
                     ShowResult(null);
                     UpdateButtons();
                 },
@@ -226,6 +248,7 @@ namespace AstroTracker
 
             _busy = true;
             UpdateButtons();
+            SetSolvedCenter(null);
             ShowResult(() => Localization.Get("solving"));
             try
             {
@@ -255,6 +278,8 @@ namespace AstroTracker
                 if (this == null)
                     return;
                 _index = index;
+                if (solution != null)
+                    SetSolvedCenter(Vec3.FromRaDecDegrees(solution.RaDeg, solution.DecDeg));
                 int detected = stars.Count;
                 double seconds = clock.Elapsed.TotalSeconds;
                 ShowResult(() => Describe(solution, target, detected, seconds));

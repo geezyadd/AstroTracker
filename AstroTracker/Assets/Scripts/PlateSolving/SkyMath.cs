@@ -97,4 +97,43 @@ namespace AstroTracker.PlateSolving
             return (Center + East * xi + North * eta).Normalized();
         }
     }
+
+    /// <summary>
+    /// Rotation between the J2000 frame and the mean equator and equinox of a date (IAU 1976 precession).
+    /// Mount software usually works in coordinates "of date" (JNow); the catalogues here are J2000.
+    /// </summary>
+    public static class Precession
+    {
+        /// <summary>Julian year of a UTC moment, e.g. 2026.78.</summary>
+        public static double JulianYear(DateTime utc)
+        {
+            double julianDate = utc.ToOADate() + 2415018.5;
+            return 2000.0 + (julianDate - 2451545.0) / 365.25;
+        }
+
+        public static Vec3 FromJ2000(Vec3 direction, double year) => Rotate(direction, year, false);
+
+        public static Vec3 ToJ2000(Vec3 direction, double year) => Rotate(direction, year, true);
+
+        static Vec3 Rotate(Vec3 v, double year, bool inverse)
+        {
+            double t = (year - 2000.0) / 100.0;
+            double zeta = (2306.2181 + (0.30188 + 0.017998 * t) * t) * t * Angle.ArcsecToRad;
+            double z = (2306.2181 + (1.09468 + 0.018203 * t) * t) * t * Angle.ArcsecToRad;
+            double theta = (2004.3109 - (0.42665 + 0.041833 * t) * t) * t * Angle.ArcsecToRad;
+
+            double cz = Math.Cos(zeta), sz = Math.Sin(zeta);
+            double cZ = Math.Cos(z), sZ = Math.Sin(z);
+            double ct = Math.Cos(theta), st = Math.Sin(theta);
+
+            double xx = cz * ct * cZ - sz * sZ, xy = -sz * ct * cZ - cz * sZ, xz = -st * cZ;
+            double yx = cz * ct * sZ + sz * cZ, yy = -sz * ct * sZ + cz * cZ, yz = -st * sZ;
+            double zx = cz * st, zy = -sz * st, zz = ct;
+
+            // The matrix is a rotation, so its inverse is its transpose.
+            return inverse
+                ? new Vec3(xx * v.X + yx * v.Y + zx * v.Z, xy * v.X + yy * v.Y + zy * v.Z, xz * v.X + yz * v.Y + zz * v.Z)
+                : new Vec3(xx * v.X + xy * v.Y + xz * v.Z, yx * v.X + yy * v.Y + yz * v.Z, zx * v.X + zy * v.Y + zz * v.Z);
+        }
+    }
 }

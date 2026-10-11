@@ -11,7 +11,8 @@
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement class="row">
-                <ui:Button name="pick" text="Choose photo" class="button" />
+                <ui:Button name="pick" class="button" />
+                <ui:Button name="camera" class="button camera-button" />
                 <ui:Label name="file" text="No photo selected" class="file" />
             </ui:VisualElement>
             <ui:TextField name="search" label="Object" placeholder-text="M 82, NGC 7000, Orion" class="field" />
@@ -33,4 +34,19 @@
             <ui:Label name="mount-status" class="result mount-status" />
         </ui:VisualElement>
     </ui:ScrollView>
+    <ui:VisualElement name="camera-panel" class="overlay">
+        <ui:VisualElement class="overlay-content">
+            <ui:VisualElement class="header">
+                <ui:Label name="camera-title" class="overlay-title" />
+                <ui:VisualElement class="languages">
+                    <ui:Button name="camera-refresh" class="language" />
+                    <ui:Button name="camera-close" class="language" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:Label name="camera-status" class="result overlay-status" />
+            <ui:ScrollView class="overlay-list" vertical-scroller-visibility="Hidden" horizontal-scroller-visibility="Hidden">
+                <ui:VisualElement name="camera-list" />
+            </ui:ScrollView>
+        </ui:VisualElement>
+    </ui:VisualElement>
 </ui:UXML>

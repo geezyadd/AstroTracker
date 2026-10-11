@@ -14,8 +14,13 @@ namespace AstroTracker.PlateSolving
         /// <summary>How many of the brightest detected stars are checked against the catalogue.</summary>
         public int MaxVerifyStars = 80;
         public double CodeTolerance = 0.01;
-        /// <summary>How far, in original pixels, a detected star may be from its predicted position.</summary>
-        public double MatchRadiusPixels = 5;
+        /// <summary>How far a detected star may be from its predicted position.</summary>
+        public double MatchRadiusArcsec = 7;
+        /// <summary>
+        /// A solution is rejected if stars scattered at random would line up with the catalogue this well
+        /// more often than this. Many arrangements are tried per frame, hence the tiny value.
+        /// </summary>
+        public double MaxChanceProbability = 1e-9;
         /// <summary>Catalogue stars that must line up with detected ones before a solution is accepted.</summary>
         public int MinMatches = 8;
     }
@@ -102,7 +107,8 @@ namespace AstroTracker.PlateSolving
             readonly int _width, _height;
             readonly double[] _x, _y;
             readonly int _quadStars, _verifyStars;
-            readonly double _scale;
+            readonly double _scale, _matchRadius;
+            int _catalogInFrame;
 
             readonly List<int> _found = new List<int>();
             readonly List<int> _nearby = new List<int>();
@@ -119,6 +125,7 @@ namespace AstroTracker.PlateSolving
                 _width = width;
                 _height = height;
                 _scale = options.PixelScaleArcsec * Angle.ArcsecToRad;
+                _matchRadius = options.MatchRadiusArcsec / options.PixelScaleArcsec;
                 _verifyStars = Math.Min(stars.Count, Math.Max(options.MaxVerifyStars, options.MaxQuadStars));
                 _quadStars = Math.Min(stars.Count, options.MaxQuadStars);
 
@@ -276,7 +283,7 @@ namespace AstroTracker.PlateSolving
                 int required = Math.Max(4, _options.MinMatches), previous = 0;
                 for (int pass = 0; pass < MaxPasses; pass++)
                 {
-                    double radius = _options.MatchRadiusPixels * (pass == 0 ? 2 : 1);
+                    double radius = _matchRadius * (pass == 0 ? 2 : 1);
                     if (!Match(plane, fit, radius) || _matchImage.Count < Math.Min(required, 6))
                         return null;
                     bool settled = pass >= 2 && _matchImage.Count <= previous;
@@ -290,6 +297,12 @@ namespace AstroTracker.PlateSolving
                         break;
                 }
                 if (_matchImage.Count < required)
+                    return null;
+
+                // In a crowded field a few detected stars sit near catalogue stars under any transform.
+                double chance = _verifyStars * (double)_catalogInFrame * Math.PI * _matchRadius * _matchRadius /
+                                ((double)_width * _height);
+                if (PoissonTail(chance, _matchImage.Count) > _options.MaxChanceProbability)
                     return null;
 
                 double scale = Math.Sqrt(Math.Abs(fit.Determinant));
@@ -351,6 +364,13 @@ namespace AstroTracker.PlateSolving
                         fit.Invert(xi, eta, out u[i], out v[i]);
                     else
                         u[i] = v[i] = double.MaxValue;
+                }
+
+                _catalogInFrame = 0;
+                for (int i = 0; i < count; i++)
+                {
+                    if (Math.Abs(u[i]) <= _width * 0.5 && Math.Abs(v[i]) <= _height * 0.5)
+                        _catalogInFrame++;
                 }
 
                 double limit = radiusPixels * radiusPixels;
@@ -469,6 +489,21 @@ namespace AstroTracker.PlateSolving
                     E = (c01 * by0 + c11 * by1 + c12 * by2) / det,
                     F = (c02 * by0 + c12 * by1 + c22 * by2) / det,
                 };
+            }
+
+            /// <summary>Probability of at least <paramref name="count"/> events when <paramref name="mean"/> are expected.</summary>
+            static double PoissonTail(double mean, int count)
+            {
+                if (mean <= 0)
+                    return 0;
+                double term = Math.Exp(-mean), sum = 0;
+                for (int i = 1; i <= count + 60; i++)
+                {
+                    term *= mean / i;
+                    if (i >= count)
+                        sum += term;
+                }
+                return sum;
             }
 
             static double Sq(double v) => v * v;

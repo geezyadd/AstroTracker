@@ -5,6 +5,7 @@ using System.IO;
 using AstroTracker.PlateSolving;
 
 // Usage: dotnet run -c Release -- [trials] [seed]
+//        dotnet run -c Release -- solve file.rgb width height scale [raHours decDeg]   (see SolveFile.cs)
 // Simulates frames of the 130 PDS + EOS 600D from the catalogue and checks that the solver finds them.
 static class Program
 {
@@ -15,12 +16,14 @@ static class Program
 
     static int Main(string[] args)
     {
-        int trials = args.Length > 0 ? int.Parse(args[0]) : 200;
-        _random = new Random(args.Length > 1 ? int.Parse(args[1]) : 1);
-
         string path = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
             "AstroTracker", "Assets", "Resources", "StarCatalog", "tycho2.bytes");
         var catalog = new StarCatalog(File.ReadAllBytes(path));
+        if (args.Length > 0 && args[0] == "solve")
+            return SolveFile.Run(catalog, args);
+
+        int trials = args.Length > 0 ? int.Parse(args[0]) : 200;
+        _random = new Random(args.Length > 1 ? int.Parse(args[1]) : 1);
         Console.WriteLine($"catalogue: {catalog.StarCount} stars, epoch J{catalog.Epoch:F2}");
 
         bool lists = StarListTest(catalog, trials);

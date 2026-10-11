@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using AstroTracker.PlateSolving;
 using UnityEngine;
@@ -23,18 +24,22 @@ namespace AstroTracker
     {
         const int Binning = 2;
         const int MaxMatches = 6;
+        const double WideSearchRadiusDeg = 10;
         const string ActiveLanguageClass = "language-active";
 
-        Button _pickButton, _solveButton;
+        Button _pickButton, _cameraButton, _solveButton;
         Button[] _languageButtons;
         Label _fileLabel, _resultLabel;
         TextField _searchField, _raField, _decField, _radiusField, _scaleField;
         VisualElement _matches;
         ObjectCatalog _objects;
         MountPanel _mount;
+        CameraPanel _camera;
 
         string _imagePath, _imageName;
         bool _busy;
+        /// <summary>Set while a whole-sky search runs; the Solve button then stops it.</summary>
+        CancellationTokenSource _wideSearch;
         StarCatalog _catalog;
         SolverIndex _index;
         /// <summary>Produces the text under the Solve button, so it can be rewritten in another language.</summary>
@@ -76,6 +81,7 @@ namespace AstroTracker
         {
             VisualElement root = GetComponent<UIDocument>().rootVisualElement;
             _pickButton = root.Q<Button>("pick");
+            _cameraButton = root.Q<Button>("camera");
             _solveButton = root.Q<Button>("solve");
             _fileLabel = root.Q<Label>("file");
             _resultLabel = root.Q<Label>("result");
@@ -102,6 +108,9 @@ namespace AstroTracker
 
             _objects ??= new ObjectCatalog(Resources.Load<TextAsset>("ObjectCatalog/objects").text);
             _mount = new MountPanel(root, CurrentTarget, () => _solvedCenter, () => _solvedCenter = null);
+            _camera = new CameraPanel(root, SetImage);
+            _cameraButton.clickable = new Clickable(_camera.Open);
+            _cameraButton.style.display = CameraLink.Supported ? DisplayStyle.Flex : DisplayStyle.None;
             _searchField.RegisterValueChangedCallback(OnSearchChanged);
             _pickButton.clicked += PickImage;
             _solveButton.clicked += Solve;
@@ -123,7 +132,9 @@ namespace AstroTracker
         void ApplyLanguage()
         {
             _pickButton.text = Localization.Get("pick");
-            _solveButton.text = Localization.Get("solve");
+            _cameraButton.text = Localization.Get("fromCamera");
+            _camera.ApplyLanguage();
+            _solveButton.text = Localization.Get(_wideSearch != null ? "cancel" : "solve");
             _searchField.label = Localization.Get("object");
             _raField.label = Localization.Get("targetRa");
             _decField.label = Localization.Get("targetDec");
@@ -204,27 +215,35 @@ namespace AstroTracker
 
         void PickImage()
         {
-            ImagePicker.Pick(
-                (path, displayName) =>
-                {
-                    _imagePath = path;
-                    _imageName = displayName;
-                    _fileLabel.text = displayName;
-                    SetSolvedCenter(null);
-                    ShowResult(null);
-                    UpdateButtons();
-                },
-                message => ShowResult(() => Localization.Get("photoError") + message));
+            ImagePicker.Pick(SetImage, message => ShowResult(() => Localization.Get("photoError") + message));
+        }
+
+        /// <summary>Makes a photo from the gallery or from the camera the frame to solve.</summary>
+        void SetImage(string path, string displayName)
+        {
+            _imagePath = path;
+            _imageName = displayName;
+            _fileLabel.text = displayName;
+            SetSolvedCenter(null);
+            ShowResult(null);
+            UpdateButtons();
         }
 
         void UpdateButtons()
         {
             _pickButton.SetEnabled(!_busy);
-            _solveButton.SetEnabled(!_busy && !string.IsNullOrEmpty(_imagePath));
+            _cameraButton.SetEnabled(!_busy);
+            _solveButton.SetEnabled(_wideSearch != null || (!_busy && !string.IsNullOrEmpty(_imagePath)));
+            _solveButton.text = Localization.Get(_wideSearch != null ? "cancel" : "solve");
         }
 
         async void Solve()
         {
+            if (_wideSearch != null)
+            {
+                _wideSearch.Cancel();
+                return;
+            }
             if (!SkyCoordinates.TryParse(_raField.value, out double raHours) || raHours < 0 || raHours >= 24)
             {
                 ShowResult(() => Localization.Get("raError"));
@@ -278,6 +297,40 @@ namespace AstroTracker
                 if (this == null)
                     return;
                 _index = index;
+
+                // Not near the target: the mount may be far off, or the target is not what was photographed.
+                bool cancelled = false;
+                if (solution == null)
+                {
+                    _wideSearch = new CancellationTokenSource();
+                    UpdateButtons();
+                    CancellationToken token = _wideSearch.Token;
+                    List<Vec3> areas = SkyAreas.Around(target, WideSearchRadiusDeg);
+                    var progress = new Progress<int>(done =>
+                    {
+                        if (_wideSearch != null)
+                            ShowResult(() => string.Format(Localization.Get("searchingSky"), done, areas.Count));
+                    });
+                    try
+                    {
+                        solution = await Task.Run(() => SearchAreas(catalog, areas, stars, width, height, options,
+                            progress, token));
+                    }
+                    finally
+                    {
+                        cancelled = token.IsCancellationRequested;
+                        _wideSearch.Dispose();
+                        _wideSearch = null;
+                    }
+                    if (this == null)
+                        return;
+                }
+
+                if (cancelled && solution == null)
+                {
+                    ShowResult(() => Localization.Get("searchStopped"));
+                    return;
+                }
                 if (solution != null)
                     SetSolvedCenter(Vec3.FromRaDecDegrees(solution.RaDeg, solution.DecDeg));
                 int detected = stars.Count;
@@ -296,6 +349,21 @@ namespace AstroTracker
                 if (this != null)
                     UpdateButtons();
             }
+        }
+
+        /// <summary>Tries the areas one by one until the frame is found or the search is stopped.</summary>
+        static PlateSolution SearchAreas(StarCatalog catalog, List<Vec3> areas, List<DetectedStar> stars,
+            int width, int height, PlateSolverOptions options, IProgress<int> progress, CancellationToken token)
+        {
+            for (int i = 0; i < areas.Count && !token.IsCancellationRequested; i++)
+            {
+                progress.Report(i + 1);
+                var index = new SolverIndex(catalog, areas[i], WideSearchRadiusDeg);
+                PlateSolution solution = PlateSolver.Solve(stars, width, height, index, options);
+                if (solution != null)
+                    return solution;
+            }
+            return null;
         }
 
         static string Describe(PlateSolution solution, Vec3 target, int detected, double seconds)

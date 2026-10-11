@@ -147,6 +147,86 @@
     background-color: rgb(52, 58, 72);
 }
 
+.camera-button {
+    margin-left: 8px;
+}
+
+.overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    align-items: center;
+    padding: 24px;
+    background-color: rgb(16, 18, 24);
+}
+
+.overlay-content {
+    flex-grow: 1;
+    width: 100%;
+    max-width: 712px;
+}
+
+.overlay-title {
+    font-size: 26px;
+    -unity-font-style: bold;
+    color: rgb(255, 255, 255);
+}
+
+.overlay-status {
+    margin: 0 0 12px 0;
+}
+
+.overlay-list {
+    flex-grow: 1;
+}
+
+.photo-row {
+    flex-direction: row;
+    align-items: center;
+    height: 88px;
+    margin: 0 0 6px 0;
+    padding: 8px 10px;
+    background-color: rgb(28, 31, 40);
+    border-width: 0;
+    border-radius: 6px;
+}
+
+.photo-row:hover {
+    background-color: rgb(40, 45, 58);
+}
+
+.photo-row:active {
+    background-color: rgb(52, 58, 72);
+}
+
+.photo-thumbnail {
+    flex-shrink: 0;
+    width: 108px;
+    height: 72px;
+    background-color: rgb(8, 9, 12);
+    border-radius: 4px;
+    -unity-background-scale-mode: scale-and-crop;
+}
+
+.photo-text {
+    flex-shrink: 1;
+    margin-left: 14px;
+}
+
+.photo-name {
+    -unity-text-align: middle-left;
+    font-size: 20px;
+    color: rgb(255, 255, 255);
+}
+
+.photo-details {
+    -unity-text-align: middle-left;
+    font-size: 16px;
+    color: rgb(170, 176, 190);
+}
+
 .section {
     margin: 28px 0 12px 0;
     padding-top: 20px;

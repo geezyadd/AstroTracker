@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace AstroTracker.PlateSolving
 {
@@ -134,6 +135,32 @@ namespace AstroTracker.PlateSolving
             return inverse
                 ? new Vec3(xx * v.X + yx * v.Y + zx * v.Z, xy * v.X + yy * v.Y + zy * v.Z, xz * v.X + yz * v.Y + zz * v.Z)
                 : new Vec3(xx * v.X + xy * v.Y + xz * v.Z, yx * v.X + yy * v.Y + yz * v.Z, zx * v.X + zy * v.Y + zz * v.Z);
+        }
+    }
+
+    /// <summary>Covers the whole sky with overlapping search areas, for frames that are not where they were expected.</summary>
+    public static class SkyAreas
+    {
+        /// <summary>
+        /// Centres of areas of the given radius that together leave no gap, nearest to
+        /// <paramref name="from"/> first.
+        /// </summary>
+        public static List<Vec3> Around(Vec3 from, double radiusDeg)
+        {
+            // Rows of declination this far apart keep every point within the radius of some centre.
+            double step = radiusDeg * 1.2;
+            int rows = (int)Math.Ceiling(180.0 / step);
+            var centers = new List<Vec3>();
+            for (int row = 0; row <= rows; row++)
+            {
+                double dec = -90.0 + 180.0 * row / rows;
+                double circle = 360.0 * Math.Cos(dec * Angle.DegToRad);
+                int columns = Math.Max(1, (int)Math.Ceiling(circle / step));
+                for (int column = 0; column < columns; column++)
+                    centers.Add(Vec3.FromRaDecDegrees(360.0 * column / columns, dec));
+            }
+            centers.Sort((a, b) => b.Dot(from).CompareTo(a.Dot(from)));
+            return centers;
         }
     }
 }

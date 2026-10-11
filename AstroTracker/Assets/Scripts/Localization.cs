@@ -65,7 +65,8 @@ namespace AstroTracker
         // English, Russian, Ukrainian.
         static readonly Dictionary<string, string[]> Texts = new Dictionary<string, string[]>
         {
-            { "pick", new[] { "Choose photo", "Выбрать фото", "Вибрати фото" } },
+            { "pick", new[] { "From gallery", "Из галереи", "З галереї" } },
+            { "fromCamera", new[] { "From camera", "С камеры", "З камери" } },
             { "noPhoto", new[] { "No photo selected", "Фото не выбрано", "Фото не вибрано" } },
             { "object", new[] { "Object", "Объект", "Об’єкт" } },
             { "targetRa", new[] { "Target RA, hours", "RA цели, часы", "RA цілі, години" } },
@@ -74,6 +75,16 @@ namespace AstroTracker
             { "scale", new[] { "Pixel scale, ″/pixel", "Масштаб, ″/пиксель", "Масштаб, ″/піксель" } },
             { "solve", new[] { "Solve", "Решить", "Розв’язати" } },
             { "solving", new[] { "Solving…", "Решаю…", "Розв’язую…" } },
+            { "cancel", new[] { "Stop the search", "Остановить поиск", "Зупинити пошук" } },
+            {
+                "searchingSky", new[]
+                {
+                    "Not found near the target. Searching the whole sky: area {0} of {1}…",
+                    "Рядом с целью не найдено. Ищу по всему небу: участок {0} из {1}…",
+                    "Поруч із ціллю не знайдено. Шукаю по всьому небу: ділянка {0} з {1}…",
+                }
+            },
+            { "searchStopped", new[] { "Search stopped.", "Поиск остановлен.", "Пошук зупинено." } },
 
             { "photoError", new[] { "Could not open the photo: ", "Не удалось открыть фото: ", "Не вдалося відкрити фото: " } },
             { "error", new[] { "Error: ", "Ошибка: ", "Помилка: " } },
@@ -122,9 +133,9 @@ namespace AstroTracker
             {
                 "noSolutionHint", new[]
                 {
-                    "Check the target coordinates, the search radius and the pixel scale.",
-                    "Проверьте координаты цели, радиус поиска и масштаб.",
-                    "Перевірте координати цілі, радіус пошуку та масштаб.",
+                    "The whole sky was searched. Check the pixel scale; the frame may also have too few stars.",
+                    "Проверено всё небо. Проверьте масштаб; возможно, на кадре слишком мало звёзд.",
+                    "Перевірено все небо. Перевірте масштаб; можливо, на кадрі замало зір.",
                 }
             },
             { "frameCentre", new[] { "Frame centre (J2000)", "Центр кадра (J2000)", "Центр кадру (J2000)" } },
@@ -159,6 +170,68 @@ namespace AstroTracker
             { "hours", new[] { "h", "ч", "год" } },
             { "minutes", new[] { "m", "м", "хв" } },
             { "seconds", new[] { "s", "с", "с" } },
+
+            { "cameraTitle", new[] { "Photos on the camera", "Фото на камере", "Фото на камері" } },
+            { "cameraRefresh", new[] { "Refresh", "Обновить", "Оновити" } },
+            { "cameraClose", new[] { "Close", "Закрыть", "Закрити" } },
+            { "cameraLoading", new[] { "Reading the photo list…", "Читаю список фото…", "Читаю список фото…" } },
+            { "cameraDownloading", new[] { "Downloading {0}…", "Скачиваю {0}…", "Завантажую {0}…" } },
+            {
+                "cameraNone", new[]
+                {
+                    "No camera found. Connect it with the USB cable and switch it on.",
+                    "Камера не найдена. Подключите её кабелем USB и включите.",
+                    "Камеру не знайдено. Під’єднайте її кабелем USB і ввімкніть.",
+                }
+            },
+            {
+                "cameraDenied", new[]
+                {
+                    "Access to the camera was not granted.",
+                    "Доступ к камере не разрешён.",
+                    "Доступ до камери не надано.",
+                }
+            },
+            {
+                "cameraOpenFailed", new[]
+                {
+                    "Could not open the camera. Reconnect the cable and try again.",
+                    "Не удалось открыть камеру. Переподключите кабель и попробуйте снова.",
+                    "Не вдалося відкрити камеру. Перепід’єднайте кабель і спробуйте ще раз.",
+                }
+            },
+            {
+                "cameraEmpty", new[]
+                {
+                    "There are no JPG photos on the camera. When shooting RAW, choose RAW+JPG.",
+                    "На камере нет фото JPG. При съёмке в RAW выберите RAW+JPG.",
+                    "На камері немає фото JPG. Для зйомки в RAW виберіть RAW+JPG.",
+                }
+            },
+            {
+                "cameraDownloadFailed", new[]
+                {
+                    "Could not download the photo.",
+                    "Не удалось скачать фото.",
+                    "Не вдалося завантажити фото.",
+                }
+            },
+            {
+                "cameraUnsupported", new[]
+                {
+                    "Reading a camera over USB works on Android only.",
+                    "Чтение камеры по USB работает только на Android.",
+                    "Читання камери через USB працює лише на Android.",
+                }
+            },
+            {
+                "cameraError", new[]
+                {
+                    "Something went wrong while talking to the camera.",
+                    "При работе с камерой произошла ошибка.",
+                    "Під час роботи з камерою сталася помилка.",
+                }
+            },
 
             { "mountTitle", new[] { "Mount (SynScan app)", "Монтировка (приложение SynScan)", "Монтування (застосунок SynScan)" } },
             { "mountAddress", new[] { "SynScan address", "Адрес SynScan", "Адреса SynScan" } },

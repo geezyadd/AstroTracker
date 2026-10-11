@@ -71,6 +71,7 @@ namespace AstroTracker
             { "object", new[] { "Object", "Объект", "Об’єкт" } },
             { "targetRa", new[] { "Target RA, hours", "RA цели, часы", "RA цілі, години" } },
             { "targetDec", new[] { "Target Dec, degrees", "Dec цели, градусы", "Dec цілі, градуси" } },
+            { "optional", new[] { "optional", "необязательно", "необов’язково" } },
             { "radius", new[] { "Search radius, degrees", "Радиус поиска, градусы", "Радіус пошуку, градуси" } },
             { "scale", new[] { "Pixel scale, ″/pixel", "Масштаб, ″/пиксель", "Масштаб, ″/піксель" } },
             { "solve", new[] { "Solve", "Решить", "Розв’язати" } },
@@ -84,6 +85,14 @@ namespace AstroTracker
                     "Поруч із ціллю не знайдено. Шукаю по всьому небу: ділянка {0} з {1}…",
                 }
             },
+            {
+                "searchingSkyNoTarget", new[]
+                {
+                    "Searching the whole sky: area {0} of {1}…",
+                    "Ищу по всему небу: участок {0} из {1}…",
+                    "Шукаю по всьому небу: ділянка {0} з {1}…",
+                }
+            },
             { "searchStopped", new[] { "Search stopped.", "Поиск остановлен.", "Пошук зупинено." } },
 
             { "photoError", new[] { "Could not open the photo: ", "Не удалось открыть фото: ", "Не вдалося відкрити фото: " } },
@@ -91,9 +100,9 @@ namespace AstroTracker
             {
                 "raError", new[]
                 {
-                    "Target RA: hours from 0 to 24, for example \"9 55 52\" or \"9.93\".",
-                    "RA цели: нужны часы от 0 до 24, например «9 55 52» или «9.93».",
-                    "RA цілі: потрібні години від 0 до 24, наприклад «9 55 52» або «9.93».",
+                    "Target RA: hours from 0 to 24, for example \"9 55 52\" or \"9.93\". Clear both target fields to solve without a target.",
+                    "RA цели: нужны часы от 0 до 24, например «9 55 52» или «9.93». Чтобы решать без цели, очистите оба поля.",
+                    "RA цілі: потрібні години від 0 до 24, наприклад «9 55 52» або «9.93». Щоб розв’язувати без цілі, очистіть обидва поля.",
                 }
             },
             {
@@ -138,6 +147,17 @@ namespace AstroTracker
                     "Перевірено все небо. Перевірте масштаб; можливо, на кадрі замало зір.",
                 }
             },
+            { "inFrame", new[] { "In the frame:", "В кадре:", "У кадрі:" } },
+            {
+                "inFrameNone", new[]
+                {
+                    "No catalogue objects in the frame.",
+                    "Объектов из каталога в кадре нет.",
+                    "Об’єктів із каталогу в кадрі немає.",
+                }
+            },
+            { "fromCentre", new[] { "{0} from the centre", "{0} от центра", "{0} від центру" } },
+            { "andMore", new[] { "and {0} more", "и ещё {0}", "і ще {0}" } },
             { "frameCentre", new[] { "Frame centre (J2000)", "Центр кадра (J2000)", "Центр кадру (J2000)" } },
             { "toTarget", new[] { "Distance to target: ", "До цели: ", "До цілі: " } },
             {

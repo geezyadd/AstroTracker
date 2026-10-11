@@ -15,10 +15,10 @@
                 <ui:Button name="camera" class="button camera-button" />
                 <ui:Label name="file" text="No photo selected" class="file" />
             </ui:VisualElement>
-            <ui:TextField name="search" label="Object" placeholder-text="M 82, NGC 7000, Orion" class="field" />
+            <ui:TextField name="search" label="Object" placeholder-text="M 82, NGC 7000, Capella" class="field" />
             <ui:VisualElement name="matches" class="matches" />
-            <ui:TextField name="ra" label="Target RA, hours" value="9 55 52" class="field" />
-            <ui:TextField name="dec" label="Target Dec, degrees" value="+69 40 47" class="field" />
+            <ui:TextField name="ra" label="Target RA, hours" class="field" />
+            <ui:TextField name="dec" label="Target Dec, degrees" class="field" />
             <ui:TextField name="radius" label="Search radius, degrees" value="10" class="field" />
             <ui:TextField name="scale" label="Pixel scale, ″/pixel" value="1.37" class="field" />
             <ui:Button name="solve" text="Solve" class="button primary" />

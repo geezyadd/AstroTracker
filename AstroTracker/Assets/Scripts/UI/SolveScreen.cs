@@ -25,6 +25,7 @@ namespace AstroTracker
         const int Binning = 2;
         const int MaxMatches = 6;
         const double WideSearchRadiusDeg = 10;
+        const int MaxObjectsInFrame = 8;
         const string ActiveLanguageClass = "language-active";
 
         Button _pickButton, _cameraButton, _solveButton;
@@ -46,6 +47,8 @@ namespace AstroTracker
         Func<string> _result;
         /// <summary>Centre of the last solved frame (J2000) while the telescope has not been moved since.</summary>
         Vec3? _solvedCenter;
+        /// <summary>Centre of the most recent solved frame, kept as the place to start looking for the next one.</summary>
+        Vec3? _lastSolved;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void CreateOnStartup()
@@ -106,7 +109,8 @@ namespace AstroTracker
             foreach (TextField field in new[] { _raField, _decField, _radiusField, _scaleField })
                 field.keyboardType = TouchScreenKeyboardType.NumbersAndPunctuation;
 
-            _objects ??= new ObjectCatalog(Resources.Load<TextAsset>("ObjectCatalog/objects").text);
+            _objects ??= new ObjectCatalog(Resources.Load<TextAsset>("ObjectCatalog/objects").text,
+                Resources.Load<TextAsset>("ObjectCatalog/stars").text);
             _mount = new MountPanel(root, CurrentTarget, () => _solvedCenter, () => _solvedCenter = null);
             _camera = new CameraPanel(root, SetImage);
             _cameraButton.clickable = new Clickable(_camera.Open);
@@ -138,6 +142,8 @@ namespace AstroTracker
             _searchField.label = Localization.Get("object");
             _raField.label = Localization.Get("targetRa");
             _decField.label = Localization.Get("targetDec");
+            _raField.textEdition.placeholder = Localization.Get("optional");
+            _decField.textEdition.placeholder = Localization.Get("optional");
             _radiusField.label = Localization.Get("radius");
             _scaleField.label = Localization.Get("scale");
             _fileLabel.text = _imageName ?? Localization.Get("noPhoto");
@@ -244,12 +250,16 @@ namespace AstroTracker
                 _wideSearch.Cancel();
                 return;
             }
-            if (!SkyCoordinates.TryParse(_raField.value, out double raHours) || raHours < 0 || raHours >= 24)
+
+            // The target is optional: with both fields empty the frame is simply located on the sky.
+            bool hasTarget = !string.IsNullOrWhiteSpace(_raField.value) || !string.IsNullOrWhiteSpace(_decField.value);
+            double raHours = 0, decDeg = 0;
+            if (hasTarget && (!SkyCoordinates.TryParse(_raField.value, out raHours) || raHours < 0 || raHours >= 24))
             {
                 ShowResult(() => Localization.Get("raError"));
                 return;
             }
-            if (!SkyCoordinates.TryParse(_decField.value, out double decDeg) || Math.Abs(decDeg) > 90)
+            if (hasTarget && (!SkyCoordinates.TryParse(_decField.value, out decDeg) || Math.Abs(decDeg) > 90))
             {
                 ShowResult(() => Localization.Get("decError"));
                 return;
@@ -278,11 +288,13 @@ namespace AstroTracker
 
                 _catalog ??= new StarCatalog(Resources.Load<TextAsset>("StarCatalog/tycho2").bytes);
                 StarCatalog catalog = _catalog;
-                Vec3 target = Vec3.FromRaDecDegrees(raHours * 15, decDeg);
+                Vec3? target = hasTarget ? Vec3.FromRaDecDegrees(raHours * 15, decDeg) : (Vec3?)null;
+                // Without a target the best guess is where the previous frame was, else the north pole.
+                Vec3 start = target ?? _lastSolved ?? Vec3.FromRaDecDegrees(0, 90);
 
-                // The index is kept while the target stays the same; building it is the slow part.
+                // The index is kept while the starting point stays the same; building it is the slow part.
                 SolverIndex index = _index;
-                if (index != null && (index.RadiusDeg != radiusDeg || index.Center.AngleTo(target) > 1e-9))
+                if (index != null && (index.RadiusDeg != radiusDeg || index.Center.AngleTo(start) > 1e-9))
                     index = null;
 
                 var options = new PlateSolverOptions { PixelScaleArcsec = pixelScale };
@@ -290,7 +302,7 @@ namespace AstroTracker
                 PlateSolution solution = await Task.Run(() =>
                 {
                     stars = StarDetector.Detect(image);
-                    index ??= new SolverIndex(catalog, target, radiusDeg);
+                    index ??= new SolverIndex(catalog, start, radiusDeg);
                     return PlateSolver.Solve(stars, width, height, index, options);
                 });
 
@@ -298,18 +310,19 @@ namespace AstroTracker
                     return;
                 _index = index;
 
-                // Not near the target: the mount may be far off, or the target is not what was photographed.
+                // Not near the starting point: the mount may be far off, or there was no target to start from.
                 bool cancelled = false;
                 if (solution == null)
                 {
                     _wideSearch = new CancellationTokenSource();
                     UpdateButtons();
                     CancellationToken token = _wideSearch.Token;
-                    List<Vec3> areas = SkyAreas.Around(target, WideSearchRadiusDeg);
+                    List<Vec3> areas = SkyAreas.Around(start, WideSearchRadiusDeg);
+                    string message = hasTarget ? "searchingSky" : "searchingSkyNoTarget";
                     var progress = new Progress<int>(done =>
                     {
                         if (_wideSearch != null)
-                            ShowResult(() => string.Format(Localization.Get("searchingSky"), done, areas.Count));
+                            ShowResult(() => string.Format(Localization.Get(message), done, areas.Count));
                     });
                     try
                     {
@@ -332,10 +345,14 @@ namespace AstroTracker
                     return;
                 }
                 if (solution != null)
-                    SetSolvedCenter(Vec3.FromRaDecDegrees(solution.RaDeg, solution.DecDeg));
+                {
+                    _lastSolved = Vec3.FromRaDecDegrees(solution.RaDeg, solution.DecDeg);
+                    SetSolvedCenter(_lastSolved);
+                }
                 int detected = stars.Count;
                 double seconds = clock.Elapsed.TotalSeconds;
-                ShowResult(() => Describe(solution, target, detected, seconds));
+                var inFrame = solution == null ? null : _objects.InFrame(solution, width, height);
+                ShowResult(() => Describe(solution, target, inFrame, detected, seconds));
             }
             catch (Exception e)
             {
@@ -366,7 +383,8 @@ namespace AstroTracker
             return null;
         }
 
-        static string Describe(PlateSolution solution, Vec3 target, int detected, double seconds)
+        static string Describe(PlateSolution solution, Vec3? target,
+            List<(SkyObject item, double fromCentreDeg)> inFrame, int detected, double seconds)
         {
             CultureInfo plain = CultureInfo.InvariantCulture;
             var text = new StringBuilder();
@@ -378,18 +396,41 @@ namespace AstroTracker
                 return text.ToString();
             }
 
-            Vec3 center = Vec3.FromRaDecDegrees(solution.RaDeg, solution.DecDeg);
-            double targetRa = target.Ra * Angle.RadToDeg, targetDec = target.Dec * Angle.RadToDeg;
-            double deltaRa = ((targetRa - solution.RaDeg + 540) % 360) - 180;
-            double deltaDec = targetDec - solution.DecDeg;
-            double offset = center.AngleTo(target) * Angle.RadToDeg;
-
             text.AppendLine(Localization.Get("frameCentre"));
             text.AppendLine($"RA {SkyCoordinates.FormatRa(solution.RaDeg)}    Dec {SkyCoordinates.FormatDec(solution.DecDeg)}");
             text.AppendLine();
-            text.AppendLine(Localization.Get("toTarget") + FormatOffset(offset));
-            text.AppendLine(string.Format(plain, Localization.Get("toTargetAxes"), deltaRa, deltaDec));
+            if (target != null)
+            {
+                Vec3 center = Vec3.FromRaDecDegrees(solution.RaDeg, solution.DecDeg);
+                double targetRa = target.Value.Ra * Angle.RadToDeg, targetDec = target.Value.Dec * Angle.RadToDeg;
+                double deltaRa = ((targetRa - solution.RaDeg + 540) % 360) - 180;
+                double deltaDec = targetDec - solution.DecDeg;
+                double offset = center.AngleTo(target.Value) * Angle.RadToDeg;
+
+                text.AppendLine(Localization.Get("toTarget") + FormatOffset(offset));
+                text.AppendLine(string.Format(plain, Localization.Get("toTargetAxes"), deltaRa, deltaDec));
+                text.AppendLine();
+            }
+            if (inFrame.Count == 0)
+            {
+                text.AppendLine(Localization.Get("inFrameNone"));
+            }
+            else
+            {
+                text.AppendLine(Localization.Get("inFrame"));
+                for (int i = 0; i < inFrame.Count && i < MaxObjectsInFrame; i++)
+                {
+                    text.Append("   ").Append(DescribeObject(inFrame[i].item)).Append(" · ").AppendLine(
+                        string.Format(Localization.Get("fromCentre"), FormatOffset(inFrame[i].fromCentreDeg)));
+                }
+                if (inFrame.Count > MaxObjectsInFrame)
+                {
+                    text.Append("   ").AppendLine(
+                        string.Format(Localization.Get("andMore"), inFrame.Count - MaxObjectsInFrame));
+                }
+            }
             text.AppendLine();
+
             text.AppendLine(string.Format(plain, Localization.Get("scaleLine"), solution.PixelScaleArcsec,
                 solution.RotationDeg, solution.Mirrored ? Localization.Get("mirrored") : ""));
             text.AppendLine(string.Format(plain, Localization.Get("starsLine"), detected, solution.MatchedStars,

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using AstroTracker.PlateSolving;
 
 namespace AstroTracker
 {
@@ -24,14 +25,43 @@ namespace AstroTracker
         public string Title => Names.Length > 0 ? Designations[0] + " — " + Names[0] : Designations[0];
     }
 
-    /// <summary>Deep-sky objects from Tools/ObjectCatalog/convert_openngc.py, searchable by designation or name.</summary>
+    /// <summary>
+    /// Targets searchable by designation or name: deep-sky objects and named stars from the lists written by
+    /// Tools/ObjectCatalog/convert_openngc.py and convert_stars.py.
+    /// </summary>
     public sealed class ObjectCatalog
     {
         readonly List<SkyObject> _objects = new List<SkyObject>();
 
         public int Count => _objects.Count;
 
-        public ObjectCatalog(string text)
+        /// <summary>
+        /// Objects whose position falls inside a solved frame, brightest first, with their distance from
+        /// the frame centre in degrees.
+        /// </summary>
+        public List<(SkyObject item, double fromCentreDeg)> InFrame(PlateSolution solution, int width, int height)
+        {
+            Vec3 centre = Vec3.FromRaDecDegrees(solution.RaDeg, solution.DecDeg);
+            var found = new List<(SkyObject, double)>();
+            foreach (SkyObject item in _objects)
+            {
+                Vec3 direction = Vec3.FromRaDecDegrees(item.RaDeg, item.DecDeg);
+                if (direction.Dot(centre) < 0.9 || !solution.SkyToPixel(direction, out double x, out double y))
+                    continue;
+                if (x >= 0 && x <= width - 1 && y >= 0 && y <= height - 1)
+                    found.Add((item, direction.AngleTo(centre) * Angle.RadToDeg));
+            }
+            found.Sort((a, b) => Brightness(a.Item1).CompareTo(Brightness(b.Item1)));
+            return found;
+        }
+
+        public ObjectCatalog(params string[] lists)
+        {
+            foreach (string list in lists)
+                Load(list);
+        }
+
+        void Load(string text)
         {
             foreach (string line in text.Split('\n'))
             {
@@ -79,10 +109,11 @@ namespace AstroTracker
                 {
                     bool isDesignation = i < item.Designations.Length;
                     string candidate = item.Keys[i];
-                    // A bare number is compared with the numeric part of the designations.
+                    // A bare number is compared with the number in the deep-sky catalogues, not with
+                    // the star catalogue numbers that would flood the result.
                     if (numeric)
                     {
-                        if (!isDesignation)
+                        if (!isDesignation || !IsNumberedCatalogue(candidate))
                             continue;
                         candidate = candidate.TrimStart(Letters);
                     }
@@ -119,6 +150,13 @@ namespace AstroTracker
         }
 
         static readonly char[] Letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray();
+
+        /// <summary>True for normalized Messier, NGC, IC and Caldwell designations such as "M82" or "NGC3034".</summary>
+        static bool IsNumberedCatalogue(string key)
+        {
+            string prefix = key.Substring(0, key.Length - key.TrimStart(Letters).Length);
+            return prefix == "M" || prefix == "NGC" || prefix == "IC" || prefix == "C";
+        }
 
         static float Brightness(SkyObject item) => float.IsNaN(item.Magnitude) ? 99f : item.Magnitude;
 
